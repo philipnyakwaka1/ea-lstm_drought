@@ -48,7 +48,7 @@ class EALSTMDataLoader:
         batch_size: int = 256,
         shuffle: bool = True,
         normalize: bool = True,
-        monthly_aggs: bool = True,
+        monthly_aggs: bool = False,
         pred_months: Optional[List[int]] = None,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ) -> None:
