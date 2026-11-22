@@ -106,6 +106,10 @@ class EALSTMDataEngineer:
             # Drop spatial_ref CRS variable present in GEE exports
             if "spatial_ref" in ds.data_vars or "spatial_ref" in ds.coords:
                 ds = ds.drop_vars("spatial_ref", errors="ignore")
+            if "ndvi" in ds.data_vars or "ndvi" in ds.coords:
+                ds = ds.drop_vars("ndvi", errors="ignore")
+            if "modis_VCI" in ds.data_vars or "modis_VCI" in ds.coords:
+                ds = ds.drop_vars("modis_VCI", errors="ignore")
             datasets.append(ds)
 
         base_ds = datasets[0]
@@ -165,7 +169,6 @@ class EALSTMDataEngineer:
             pixel_means_bool=pixel_means,
         )
 
-        # Harmonize coordinate grids between static (e.g. 112x88) and dynamic (52x79)
         if len(static_ds.data_vars) > 0:
             static_ds = xr.merge([static_ds, static_means],join="exact")
         else:
