@@ -1,3 +1,11 @@
+
+%cd /content/ea-lstm_drought
+
+# Replace 'dev' with 'master' if you are on the master branch
+!git fetch origin
+!git reset --hard origin/dev
+
+
 Run this data loader test before connecting to ealstm
 
 sample = loader._extract_pairs(loader.data_folders[0])
