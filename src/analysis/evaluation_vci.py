@@ -28,32 +28,22 @@ import xarray as xr
 from ..models.dataloader import EALSTMDataLoader
 from ..models.ealstm import EALSTMNetwork
 
-# Fallback bounding boxes used only if no county polygon file is supplied or found
+
 COUNTY_BOUNDS = {
     "Marsabit": {"lat_min": 1.5, "lat_max": 4.5, "lon_min": 36.5, "lon_max": 39.2},
-    "Mandera":  {"lat_min": 2.5, "lat_max": 4.2, "lon_min": 39.8, "lon_max": 41.9},
-    "Turkana":  {"lat_min": 1.0, "lat_max": 4.8, "lon_min": 34.8, "lon_max": 36.8},
-    "Wajir":    {"lat_min": 0.5, "lat_max": 3.5, "lon_min": 38.8, "lon_max": 41.0},
+    "Mandera": {"lat_min": 2.5, "lat_max": 4.2, "lon_min": 39.8, "lon_max": 41.9},
+    "Turkana": {"lat_min": 1.0, "lat_max": 4.8, "lon_min": 34.8, "lon_max": 36.8},
+    "Wajir": {"lat_min": 0.5, "lat_max": 3.5, "lon_min": 38.8, "lon_max": 41.0},
 }
 
 DEFAULT_TARGET_COUNTIES = ["Marsabit", "Mandera", "Turkana", "Wajir"]
 
 DEFAULT_BOUNDARY_FILENAMES = [
     "kenya_counties.gpkg",
-    "kenya_counties.geojson",
-    "kenya_counties.shp",
 ]
 
 CANDIDATE_COUNTY_NAME_COLS = [
-    "ADM1_EN",
     "ADM1_NAME",
-    "NAME_1",
-    "COUNTY",
-    "COUNTY_NAM",
-    "County",
-    "NAME",
-    "Name",
-    "name",
 ]
 
 # NDMA / Klisch & Atzberger (2016) VCI3M drought deficit class labels
@@ -401,6 +391,7 @@ class ModelEvaluator:
             shuffle=False,
             device=str(self.device),
         )
+        model.to(self.device)
         model.eval()
 
         all_preds, all_true = [], []
@@ -410,6 +401,9 @@ class ModelEvaluator:
                 preds = model(x_d, x_s)
                 all_preds.append(preds.cpu().numpy())
                 all_true.append(y.cpu().numpy())
+
+        if not all_preds:
+            raise ValueError("The test data loader produced no batches.")
 
         # Collect and deduplicate static features + spatial coordinates across test folders
         sorted_folders = _sort_month_folders(test_loader.data_folders)
