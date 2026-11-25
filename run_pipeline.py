@@ -47,7 +47,7 @@ trainer.train(
 # -------------------------------------------------------------
 # 4. RUN COMPREHENSIVE EVALUATION & SHAP ANALYSIS
 # -------------------------------------------------------------
-from src.analysis.evaluation import ModelEvaluator
+from src.analysis.evaluation_vci import ModelEvaluator
 
 evaluator = ModelEvaluator(data_path="data", target_variable="modis_VCI3M")
 evaluator.evaluate_test_set(trainer.model)
