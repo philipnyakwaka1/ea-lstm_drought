@@ -10,13 +10,13 @@ from src.preprocessor import (
     ERA5LandSoilTypePreprocessor,
 )
 
-# Usage: python run_pipeline.py <data_path> <task: preprocess, engineer, ealstm, analysis> <dataset_name: optional> <regrid: optional>
+# Usage: python run_pipeline.py <data_folder> <task: preprocess, engineer, ealstm, analysis> <dataset_name: optional> <regrid: optional>
 
 tasks = ["preprocess", "engineer", "ealstm", "analysis"]
 datasets = ["chirps", "modis_ndvi", "srtm", "era5_land", "era5_land_slt"]
 
 # Check command-line arguments
-data_path = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+data_folder = Path(sys.argv[1]) if len(sys.argv) > 1 else None
 task = sys.argv[2] if len(sys.argv) > 2 else None
 dataset_name = sys.argv[3] if len(sys.argv) > 3 else None
 regrid = Path(sys.argv[4]) if len(sys.argv) > 4 else None
@@ -29,17 +29,17 @@ if dataset_name and dataset_name not in datasets:
     print(f"Invalid dataset name: {dataset_name}. Please choose from {datasets}")
     sys.exit(1)
 
-if data_path and not Path(data_path).exists():
-    print(f"Data path does not exist: {data_path}")
+if data_folder and not Path(data_folder).exists():
+    print(f"Data path does not exist: {data_folder}")
     sys.exit(1)
 
 if regrid and not regrid.exists():
     print(f"Regrid path does not exist: {regrid}")
     sys.exit(1)
 
-def preprocess(data_path, dataset_name):
+def preprocess(data_folder, dataset_name):
     if dataset_name == "chirps":
-        preprocessor = CHIRPSPreprocessor(data_path=data_path)
+        preprocessor = CHIRPSPreprocessor(data_folder=data_folder)
         check_raw_files(dataset_name, preprocessor.raw_folder / dataset_name,
                          preprocessor.gee_exports / dataset_name)
         output_path = preprocessor.preprocess(
@@ -50,7 +50,7 @@ def preprocess(data_path, dataset_name):
             cleanup=False,
         )
     elif dataset_name == "modis_ndvi":
-        preprocessor = MODISNDVIPreprocessor(data_folder=data_path)
+        preprocessor = MODISNDVIPreprocessor(data_folder=data_folder)
         check_raw_files(
             preprocessor.dataset,
             preprocessor.raw_folder / preprocessor.dataset,
@@ -65,7 +65,7 @@ def preprocess(data_path, dataset_name):
             cleanup=False,
         )
     elif dataset_name == "srtm":
-        preprocessor = SRTMPreprocessor(data_path=data_path)
+        preprocessor = SRTMPreprocessor(data_folder=data_folder)
         check_raw_files(
             dataset_name,
             preprocessor.raw_folder / dataset_name,
@@ -78,7 +78,7 @@ def preprocess(data_path, dataset_name):
             clean_weights=False,
         )
     elif dataset_name == "era5_land":
-        preprocessor = ERA5LandPreprocessor(data_path=data_path)
+        preprocessor = ERA5LandPreprocessor(data_folder=data_folder)
         check_raw_files(
             preprocessor.dataset,
             preprocessor.raw_folder / preprocessor.dataset,
@@ -92,7 +92,7 @@ def preprocess(data_path, dataset_name):
             cleanup=False,
         )
     elif dataset_name == "era5_land_slt":
-        preprocessor = ERA5LandSoilTypePreprocessor(data_path=data_path)
+        preprocessor = ERA5LandSoilTypePreprocessor(data_folder=data_folder)
         check_raw_files(
             preprocessor.dataset,
             preprocessor.raw_folder / preprocessor.dataset,
@@ -110,14 +110,14 @@ def preprocess(data_path, dataset_name):
     return output_path
 
 if __name__ == "__main__":
-    if not data_path or not task:
-        print("Usage: python run_pipeline.py <data_path> <task: preprocess, engineer, ealstm, analysis> <dataset_name: optional> <regrid: optional>")
+    if not data_folder or not task:
+        print("Usage: python run_pipeline.py <data_folder> <task: preprocess, engineer, ealstm, analysis> <dataset_name: optional> <regrid: optional>")
         sys.exit(1)
 
     if task == "preprocess":
         if not dataset_name:
             print("Please specify a dataset name for preprocessing.")
             sys.exit(1)
-        preprocess(data_path, dataset_name)
+        preprocess(data_folder, dataset_name)
     else:
         print(f"Task '{task}' is not implemented yet.")
