@@ -408,7 +408,7 @@ class MODISNDVIPreprocessor(BasePreProcessor):
 
     def preprocess(
         self,
-        regrid: str,
+        regrid: Path,
         subset_str: Optional[str] = "kenya",
         regrid_method: str = "bilinear",
         reference_period: Optional[Tuple[str, str]] = None,
@@ -477,8 +477,6 @@ class MODISNDVIPreprocessor(BasePreProcessor):
                 "A reference grid is required. "
                 "Provide the path using the 'regrid' argument."
             )
-
-        regrid = Path(regrid)
 
         if not regrid.exists():
             raise FileNotFoundError(

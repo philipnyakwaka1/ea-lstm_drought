@@ -109,7 +109,7 @@ class SRTMPreprocessor(BasePreProcessor):
         self,
         subset_str: str = "kenya",
         regrid: Optional[Path] = None,
-        regrid_method: str = "conservative",
+        regrid_method: str = "bilinear",
         reuse_weights: bool = True,
         clean_weights: bool = False,
     ) -> Path:

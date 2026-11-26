@@ -136,6 +136,7 @@ class ERA5LandPreprocessor(BasePreProcessor):
         netcdf_filepath: Path,
         subset_str: Optional[str] = "kenya",
         regrid: Optional[xr.Dataset] = None,
+        regrid_method: str = "bilinear",
     ) -> Path:
         """
         Process one monthly ERA5-Land file.
@@ -151,7 +152,7 @@ class ERA5LandPreprocessor(BasePreProcessor):
 
             # Optionally regrid to the reference grid.
             if regrid is not None:
-                ds = self.regrid(ds, regrid, method="bilinear")
+                ds = self.regrid(ds, regrid, method=regrid_method)
 
             ds.load()
 
@@ -269,6 +270,7 @@ class ERA5LandPreprocessor(BasePreProcessor):
         self,
         subset_str: Optional[str] = "kenya",
         regrid: Optional[Path] = None,
+        regrid_method: str = "bilinear",
         n_processes: int = 1,
         cleanup: bool = True,
     ) -> Tuple[Path, Path]:
@@ -310,6 +312,7 @@ class ERA5LandPreprocessor(BasePreProcessor):
                         self._preprocess_single,
                         subset_str=subset_str,
                         regrid=regrid,
+                        regrid_method=regrid_method,
                     ),
                     nc_files,
                 )
@@ -319,6 +322,7 @@ class ERA5LandPreprocessor(BasePreProcessor):
                     file,
                     subset_str=subset_str,
                     regrid=regrid,
+                    regrid_method=regrid_method,
                 )
                 for file in nc_files
             ]
@@ -498,6 +502,7 @@ class ERA5LandSoilTypePreprocessor(BasePreProcessor):
         self,
         subset_str: Optional[str] = "kenya",
         regrid: Optional[Path] = None,
+        regrid_method: str = "nearest_s2d",
     ) -> Path:
         """
         Preprocess static ERA5-Land soil-type data.
@@ -541,7 +546,7 @@ class ERA5LandSoilTypePreprocessor(BasePreProcessor):
                 ds = self.regrid(
                     ds,
                     reference_grid,
-                    method="nearest_s2d",
+                    method=regrid_method,
                 )
 
             # Generate the seven one-hot channels.

@@ -35,6 +35,7 @@ class BasePreProcessor:
     ) -> None:
 
         self.data_folder = data_folder
+        self.gee_exports = self.data_folder / "GEE_Exports"
         self.raw_folder = self.data_folder / "raw"
         self.preprocessed_folder = self.data_folder / "interim"
 

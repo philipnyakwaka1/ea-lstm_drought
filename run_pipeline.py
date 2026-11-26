@@ -1,53 +1,123 @@
-# -------------------------------------------------------------
-# 1. MOUNT DRIVE AND RUN PRE-FLIGHT TEST
-# -------------------------------------------------------------
-from google.colab import drive
 import os
-
-drive.mount('/content/drive')
-REPO_DIR = '/content/drive/MyDrive/ea_lstm_drought'
-%cd $REPO_DIR
-
-!python -m tests.test_pipeline
-
-# -------------------------------------------------------------
-# 2. RUN ENGINEER (2023 VALIDATION, 2016-2018 TEST)
-# -------------------------------------------------------------
-from src.engineer.engineer import EALSTMDataEngineer
-
-engineer = EALSTMDataEngineer(data_folder="data", process_static=True)
-engineer.engineer(
-    test_years=,
-    val_years=2023,
-    target_variable="modis_VCI3M",
-    pred_months=3,
-    expected_length=3,
-    pixel_means=True,
-    global_means=False
+import sys
+from pathlib import Path
+from src.preprocessor.utils import check_raw_files
+from src.preprocessor import (
+    CHIRPSPreprocessor,
+    MODISNDVIPreprocessor,
+    SRTMPreprocessor,
+    ERA5LandPreprocessor,
+    ERA5LandSoilTypePreprocessor,
 )
 
-# -------------------------------------------------------------
-# 3. TRAIN EA-LSTM (UNWEIGHTED LOSS, BEST WEIGHT CHECKPOINTING)
-# -------------------------------------------------------------
-from src.models.ealstm import EARecurrentModel
+# Usage: python run_pipeline.py <data_path> <task: preprocess, engineer, ealstm, analysis> <dataset_name: optional> <regrid: optional>
 
-trainer = EARecurrentModel(
-    data_path="data",
-    hidden_size=64,
-    rnn_dropout=0.25,
-    learning_rate=1e-3
-)
+tasks = ["preprocess", "engineer", "ealstm", "analysis"]
+datasets = ["chirps", "modis_ndvi", "srtm", "era5_land", "era5_land_slt"]
 
-trainer.train(
-    num_epochs=100,
-    patience=10,
-    batch_size=256
-)
+# Check command-line arguments
+data_path = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+task = sys.argv[2] if len(sys.argv) > 2 else None
+dataset_name = sys.argv[3] if len(sys.argv) > 3 else None
+regrid = Path(sys.argv[4]) if len(sys.argv) > 4 else None
 
-# -------------------------------------------------------------
-# 4. RUN COMPREHENSIVE EVALUATION & SHAP ANALYSIS
-# -------------------------------------------------------------
-from src.analysis.evaluation_vci import ModelEvaluator
+if task and task not in tasks:
+    print(f"Invalid task: {task}. Please choose from {tasks}")
+    sys.exit(1)
 
-evaluator = ModelEvaluator(data_path="data", target_variable="modis_VCI3M")
-evaluator.evaluate_test_set(trainer.model)
+if dataset_name and dataset_name not in datasets:
+    print(f"Invalid dataset name: {dataset_name}. Please choose from {datasets}")
+    sys.exit(1)
+
+if data_path and not Path(data_path).exists():
+    print(f"Data path does not exist: {data_path}")
+    sys.exit(1)
+
+if regrid and not regrid.exists():
+    print(f"Regrid path does not exist: {regrid}")
+    sys.exit(1)
+
+def preprocess(data_path, dataset_name):
+    if dataset_name == "chirps":
+        preprocessor = CHIRPSPreprocessor(data_path=data_path)
+        check_raw_files(dataset_name, preprocessor.raw_folder / dataset_name,
+                         preprocessor.gee_exports / dataset_name)
+        output_path = preprocessor.preprocess(
+            subset_str="kenya",
+            regrid=regrid,
+            regrid_method="bilinear" if regrid else None,
+            n_processes=1 if regrid else len(os.sched_getaffinity(0)),
+            cleanup=False,
+        )
+    elif dataset_name == "modis_ndvi":
+        preprocessor = MODISNDVIPreprocessor(data_folder=data_path)
+        check_raw_files(
+            preprocessor.dataset,
+            preprocessor.raw_folder / preprocessor.dataset,
+            preprocessor.gee_exports / preprocessor.dataset,
+        )
+        output_path = preprocessor.preprocess(
+            subset_str="kenya",
+            regrid=regrid,
+            regrid_method="bilinear" if regrid else None,
+            rolling_window=3,
+            reference_period=('2002', '2022'),
+            cleanup=False,
+        )
+    elif dataset_name == "srtm":
+        preprocessor = SRTMPreprocessor(data_path=data_path)
+        check_raw_files(
+            dataset_name,
+            preprocessor.raw_folder / dataset_name,
+            preprocessor.gee_exports / dataset_name,
+        )
+        output_path = preprocessor.preprocess(
+            subset_str="kenya",
+            regrid=regrid,
+            regrid_method="bilinear" if regrid else None,
+            clean_weights=False,
+        )
+    elif dataset_name == "era5_land":
+        preprocessor = ERA5LandPreprocessor(data_path=data_path)
+        check_raw_files(
+            preprocessor.dataset,
+            preprocessor.raw_folder / preprocessor.dataset,
+            preprocessor.gee_exports / preprocessor.dataset,
+        )
+        output_path = preprocessor.preprocess(
+            subset_str="kenya",
+            regrid=regrid,
+            regrid_method="bilinear" if regrid else None,
+            n_processes=1 if regrid else len(os.sched_getaffinity(0)),
+            cleanup=False,
+        )
+    elif dataset_name == "era5_land_slt":
+        preprocessor = ERA5LandSoilTypePreprocessor(data_path=data_path)
+        check_raw_files(
+            preprocessor.dataset,
+            preprocessor.raw_folder / preprocessor.dataset,
+            preprocessor.gee_exports / preprocessor.dataset,
+        )
+        output_path = preprocessor.preprocess(
+            subset_str="kenya",
+            regrid=regrid,
+            regrid_method="nearest_s2d" if regrid else None,
+        )
+    else:
+        raise ValueError(f"Unknown dataset name: {dataset_name}")
+
+    print(f"Preprocessing completed for {dataset_name}. Output saved to: {output_path}")
+    return output_path
+
+if __name__ == "__main__":
+    if not data_path or not task:
+        print("Usage: python run_pipeline.py <data_path> <task: preprocess, engineer, ealstm, analysis> <dataset_name: optional> <regrid: optional>")
+        sys.exit(1)
+
+    if task == "preprocess":
+        if not dataset_name:
+            print("Please specify a dataset name for preprocessing.")
+            sys.exit(1)
+        preprocess(data_path, dataset_name)
+    else:
+        print(f"Task '{task}' is not implemented yet.")
